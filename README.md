@@ -1,116 +1,365 @@
-# Crib-Decoding: Constraint-Aware Pruning for Efficient LLM Inference
+# Crib-Decoding
+## Constraint-Aware Token Pruning for Efficient LLM Inference
 
-**Turning "impossible tokens" into free speedups — inspired by Turing's Bombe and smartphone keyboards.**
-
----
-
-## 🎯 The Idea
-
-Large Language Models waste enormous computation evaluating **impossible or highly implausible** next tokens.
-
-After the prompt *"The cat sat on the..."*, a model should **not** seriously consider tokens like `needle`, `supernova`, `democracy`, or `quantum entanglement`. Yet today's transformers compute logits over the entire vocabulary (50k–200k tokens) every single step.
-
-This is the modern equivalent of the Bombe testing every possible Enigma setting instead of using known plaintext patterns ("cribs") to eliminate millions of impossibilities upfront.
-
-**Crib-Decoding** proposes a practical two-stage architecture:
-
-1. **Fast Crib Filter** (lightweight, symbolic + small neural net) — Eliminate 95–99% of impossible candidates using grammar, common-sense, physics, and context.
-2. **Target LLM** — Run the heavy model **only** on the shortlist of plausible candidates.
-
-This mirrors:
-- Turing’s use of predictable repetitive phrases in Enigma messages.
-- How smartphone keyboards (Gboard, SwiftKey, etc.) deliver instant next-word suggestions using tiny models + smart pruning.
+> Turning "impossible tokens" into free speedups — inspired by Turing's Bombe, smartphone keyboards, and CPU branch prediction.
 
 ---
 
-## 🚀 Why This Matters
+# 🎯 Overview
 
-- **Massive efficiency gains** possible on edge devices, real-time applications, and high-volume serving.
-- Complements existing techniques like **speculative decoding**, Medusa, lookahead decoding, and dynamic vocabulary pruning.
-- Brings **hybrid neuro-symbolic** thinking back into modern LLM inference.
+Modern Large Language Models (LLMs) spend enormous computation evaluating tokens that are extremely unlikely — or practically impossible — given the current context.
 
----
+After a prompt like:
 
-## 🧠 Core Insight
+> "The cat sat on the..."
 
-Language is **highly constrained**. Humans instantly reject absurd continuations. Current LLMs *know* these constraints statistically but still pay the full computational cost every time.
+the model still computes logits across an entire vocabulary of 50k–200k+ tokens, including highly implausible candidates such as:
 
-> "A cat cannot sit on a needle"  
-> — Simple example of a hard world-knowledge constraint that should be filtered in microseconds.
+- `supernova`
+- `democracy`
+- `quantum`
+- `refrigerator`
 
----
+even though humans instantly reject most of these possibilities.
 
-## 📋 Proposed Architecture
+**Crib-Decoding** proposes a lightweight, constraint-aware filtering stage that aggressively narrows the candidate space *before* expensive inference occurs.
 
-| Stage | Method | Cost | Responsibility |
-|-------|--------|------|----------------|
-| 1. Fast Filter | N-gram + small NN + rule-based constraints | Negligible | Grammar, physics plausibility, user context, domain rules |
-| 2. Candidate Ranking | Main LLM (or speculative draft) on shortlist (k=10–100) | 5–100x cheaper | Final probability distribution |
-| 3. Verification | Standard acceptance (or speculative verification) | - | Maintain output quality |
+The central idea:
+
+> Most next-token possibilities can be eliminated early using cheap constraints and lightweight prediction systems.
 
 ---
 
-## 🔍 Inspiration Sources
+# 🧠 Core Insight
 
-- **The Imitation Game** — Turing’s use of cribs to crack Enigma.
-- **Smartphone Keyboards** — Real-world deployment of tiny, personalized, constraint-aware next-word prediction.
-- Existing Research — Speculative decoding, dynamic vocabulary pruning, constrained decoding, neuro-symbolic hybrids.
+Language is highly constrained.
 
----
+Humans continuously apply:
+- grammar
+- common sense
+- contextual expectations
+- domain knowledge
+- conversational patterns
+- physical plausibility
 
-## 🛠️ Project Goals
+to eliminate absurd continuations almost instantly.
 
-- Formalize the "Crib Filter" concept.
-- Build minimal viable prototypes (starting with toy models and keyboard-style predictors).
-- Integrate with existing engines (`llama.cpp`, `vLLM`, Hugging Face).
-- Explore learnable vs rule-based vs hybrid filters.
-- Benchmark real speed/quality tradeoffs.
+Current transformers learn these patterns statistically during training, but still pay the computational cost of evaluating the full vocabulary at every generation step.
 
----
-
-## 📌 Current Status
-
-**Idea stage with strong historical + practical grounding.**  
-Looking for collaborators, feedback, and early implementers.
-
-This is intentionally simple and actionable — the kind of insight that can evolve into production optimizations.
+Crib-Decoding explores whether intelligent early pruning can become a first-class primitive in modern inference systems.
 
 ---
 
-## 🤝 How to Contribute
+# 🔍 Why "Crib-Decoding"?
 
-1. **Discussion** — Open an issue with your thoughts, criticisms, or extensions.
-2. **Prototyping** — Even a small proof-of-concept (e.g., n-gram + rule filter on top of a 1B model) would be valuable.
-3. **Literature** — Help link this idea to related papers.
-4. **Real-world examples** — Share more "cat on a needle" style constraints from your domain.
+The name comes from Alan Turing’s use of **cribs** during WWII cryptanalysis.
 
----
+Instead of brute-forcing every possible Enigma configuration, the Bombe machine exploited predictable phrases and structural constraints to eliminate enormous portions of the search space early.
 
-## 📚 Related Work
+Crib-Decoding applies a similar philosophy to language generation:
 
-- Speculative Decoding (Leviathan et al., 2022 and many follow-ups)
-- Dynamic Vocabulary Pruning in Early-Exit LLMs
-- Constrained Decoding frameworks (Outlines, Guidance)
-- Neuro-Symbolic AI approaches
-
-*(We'll expand this section as the project grows)*
+> Use constraints to prune implausible possibilities before expensive computation.
 
 ---
 
-## 📄 License
+# 📱 Real-World Inspiration
 
-MIT License — feel free to use, adapt, and build upon.
+Modern smartphone keyboards already use simplified forms of this principle.
+
+Systems like:
+- Gboard
+- SwiftKey
+- Apple QuickType
+
+combine:
+- tiny prediction models,
+- cached context,
+- personalization,
+- grammar heuristics,
+- and aggressive candidate pruning
+
+to produce near-instant next-word suggestions on low-power mobile hardware.
+
+Crib-Decoding explores whether similar hierarchical strategies can improve modern LLM inference.
 
 ---
 
-## 🙋‍♂️ Origin
+# ⚙️ Connection to CPU Branch Prediction
 
-This concept was developed in conversations highlighting inefficiencies in current LLM inference and drawing parallels from code-breaking history and everyday technology (smartphone keyboards).
+Modern CPUs avoid wasting computation by predicting likely execution paths ahead of time.
 
-**"The next leap won't come from brute force alone — it will come from intelligently pruning the impossible."**
+Crib-Decoding applies a similar philosophy to token generation:
+
+- lightweight systems make cheap predictions,
+- expensive computation focuses only on likely candidates,
+- and unlikely paths are deprioritized early.
+
+This reframes LLM inference as a hierarchical compute-allocation problem rather than pure brute-force scoring.
 
 ---
 
-**Star this repo if you believe intelligent constraints belong in the next generation of LLM architectures.**
+# 🏗️ Proposed Architecture
+
+```text
+Prompt
+   ↓
+[ Stage 1: Fast Crib Filter ]
+Tiny neural net + symbolic rules + heuristics
+   ↓
+Plausible candidate shortlist (k = 50–500)
+   ↓
+[ Stage 2: Main LLM ]
+Full reasoning only on shortlisted candidates
+   ↓
+Final Output Distribution
+```
 
 ---
+
+# ⚡ Candidate Benefits
+
+Potential advantages include:
+
+- Lower inference latency
+- Reduced memory bandwidth usage
+- Higher throughput
+- Lower energy consumption
+- Better edge-device deployment
+- Improved real-time responsiveness
+
+Potential use cases:
+
+- Mobile & on-device AI
+- Robotics & embedded systems
+- Local AI assistants
+- Real-time conversational systems
+- Large-scale inference serving
+
+---
+
+# 🧩 Possible Filtering Mechanisms
+
+The Crib Filter could combine multiple approaches:
+
+| Method | Purpose |
+|---|---|
+| N-gram predictors | Fast statistical constraints |
+| Tiny neural networks | Cheap probability estimation |
+| Grammar & syntax rules | Eliminate invalid structures |
+| Semantic gating | Context plausibility |
+| Domain constraints | Restrict impossible outputs |
+| User context | Personalization |
+| Retrieval/context filters | Dynamic narrowing |
+| Dynamic vocabulary pruning | Reduce active token space |
+
+The filter may be:
+- rule-based,
+- learned,
+- hybrid neuro-symbolic,
+- or adaptive.
+
+---
+
+# 📊 Soft vs Hard Constraints
+
+A major research question:
+
+Should the filter:
+- completely remove candidates (**hard pruning**),
+- or simply suppress unlikely candidates (**soft biasing**)?
+
+## Hard Pruning
+- Larger theoretical speedups
+- Higher risk of removing valid outputs
+
+## Soft Biasing
+- Safer and more flexible
+- Smaller performance gains
+
+The project aims to explore the tradeoffs between both approaches.
+
+---
+
+# ⚠️ Challenges & Failure Cases
+
+This approach introduces several important risks:
+
+| Challenge | Description |
+|---|---|
+| False negatives | Valid tokens incorrectly removed |
+| Creativity suppression | Poetry, humor, fiction, metaphors |
+| Tokenization complexity | BPE / SentencePiece fragmentation |
+| Filter overhead | Filter itself must remain extremely cheap |
+| Distribution shift | Constraints vary across domains |
+| Adversarial prompts | Inputs intentionally breaking assumptions |
+
+The central challenge is achieving:
+- meaningful pruning,
+- extremely high recall,
+- and near-zero filter overhead.
+
+---
+
+# 🔤 Tokenization Reality
+
+Transformers do not operate directly on words.
+
+Modern LLMs use:
+- BPE (Byte Pair Encoding)
+- SentencePiece
+- subword tokenization
+
+which means filtering must operate over fragmented token spaces such as:
+
+```text
+super + nova
+quant + um
+entangle + ment
+```
+
+rather than simple dictionary words.
+
+This significantly affects practical implementation.
+
+---
+
+# 🧪 Hypothetical Example
+
+| Method | Active Tokens | Relative Cost |
+|---|---|---|
+| Standard Transformer | 128,000 | 1.0x |
+| Moderate Crib Filtering | 500 | ~0.2x |
+| Aggressive Pruning | 100 | ~0.05x |
+
+> Illustrative only — real benchmarks are required.
+
+---
+
+# 🔬 Relationship to Existing Research
+
+This idea overlaps with concepts from:
+
+- Speculative Decoding
+- Medusa Decoding
+- Lookahead Decoding
+- Dynamic Vocabulary Pruning
+- Early Exit Architectures
+- Mixture-of-Experts Routing
+- Constrained Decoding
+- Neuro-Symbolic AI
+
+However, Crib-Decoding focuses specifically on:
+
+> Explicit implausible-token elimination as a first-class inference primitive.
+
+---
+
+# 🛠️ Research Roadmap
+
+## Phase 1 — Toy Prototypes
+- N-gram + rule-based filters
+- Small vocabulary experiments
+- CPU-only benchmarking
+
+## Phase 2 — Integration
+- `llama.cpp`
+- `vLLM`
+- Hugging Face Transformers
+
+## Phase 3 — Adaptive Filtering
+- Learned filters
+- Domain-aware pruning
+- Personalized constraints
+- Dynamic thresholds
+
+## Phase 4 — Benchmarking
+Measure:
+- latency
+- throughput
+- perplexity
+- energy usage
+- output quality
+- false-negative rates
+
+---
+
+# 📌 Current Status
+
+Early-stage research concept.
+
+The goal is to:
+- formalize the idea,
+- prototype implementations,
+- benchmark feasibility,
+- and determine whether constraint-aware pruning can produce meaningful inference gains.
+
+---
+
+# 🤝 Contributions Welcome
+
+Areas where contributions would help most:
+
+## Research
+- Prior art
+- Related papers
+- Theoretical analysis
+
+## Engineering
+- Prototype implementations
+- Inference engine integrations
+- Benchmark tooling
+
+## Experiments
+- Vocabulary pruning tests
+- Tiny-model gating
+- Edge-device evaluations
+
+## Criticism
+Strong criticism and counterexamples are especially valuable.
+
+Understanding failure modes is critical for refining the concept.
+
+---
+
+# 📚 Related Work
+
+## Inference Optimization
+- Speculative Decoding
+- Medusa
+- Lookahead Decoding
+- Dynamic Vocabulary Pruning
+
+## Constrained Generation
+- Outlines
+- Guidance
+- Structured Decoding Systems
+
+## Hybrid Systems
+- Neuro-symbolic AI
+- Constraint-aware inference
+- Hierarchical compute allocation
+
+---
+
+# 📄 License
+
+MIT License
+
+Use freely, experiment aggressively, and improve openly.
+
+---
+
+# 🙋 Origin
+
+This concept emerged from discussions around transformer inefficiencies, historical code-breaking techniques, smartphone prediction systems, and hierarchical compute optimization.
+
+---
+
+# 💭 Closing Thought
+
+> "The next leap in AI efficiency may not come from brute force alone —
+> but from intelligently pruning the impossible."
+
+---
+
+⭐ Star the repo if you believe constraint-aware inference belongs in the future of AI systems.
